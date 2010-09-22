@@ -208,7 +208,9 @@ struct l_dev {
 #include <utmp.h>
 # endif	/* defined(HASUTMPX) */
 
+# if	!defined(__BIONIC__)
 extern int errno;
+# endif /* !defined(__BIONIC__) */
 extern char *optarg;
 extern int optind;
 
