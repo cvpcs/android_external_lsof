@@ -77,8 +77,9 @@ static struct porttab **Pth[4] = { NULL, NULL, NULL, NULL };
 						 */
 #define HASHPORT(p)	(((((int)(p)) * 31415) >> 3) & (PORTHASHBUCKETS - 1))
 
-
-//_PROTOTYPE(static void fill_portmap,(void));
+# if	!defined(__BIONIC__) // bionic doesn't have RPC support
+_PROTOTYPE(static void fill_portmap,(void));
+# endif	/* !defined(__BIONIC__) */
 _PROTOTYPE(static void fill_porttab,(void));
 _PROTOTYPE(static char *lkup_port,(int p, int pr, int src));
 _PROTOTYPE(static char *lkup_svcnam,(int h, int p, int pr, int ss));
@@ -103,6 +104,7 @@ endnm(sz)
 	return(s);
 }
 
+# if	!defined(__BIONIC__) // bionic doesn't have RPC support
 
 /*
  * fill_portmap() -- fill the RPC portmap program name table via a conversation
@@ -143,7 +145,7 @@ endnm(sz)
 * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 * SUCH DAMAGE.
-*//*
+*/
 
 static void
 fill_portmap()
@@ -165,7 +167,7 @@ fill_portmap()
 
 /*
  * Construct structures for communicating with the portmapper.
- *//*
+ */
 
 #if	!defined(CAN_USE_CLNT_CREATE)
 	zeromem(&ia, sizeof(ia));
@@ -173,19 +175,19 @@ fill_portmap()
 	if ((he = gethostbyname("localhost")))
 	    MEMMOVE((caddr_t)&ia.sin_addr, he->h_addr, he->h_length);
 	ia.sin_port = htons(PMAPPORT);
-#endif	/* !defined(CAN_USE_CLNT_CREATE) *//*
+#endif	/* !defined(CAN_USE_CLNT_CREATE) */
 
 	tm.tv_sec = 60;
 	tm.tv_usec = 0;
 /*
  * Get an RPC client handle.  Then ask for a dump of the port map.
- *//*
+ */
 
 #if	defined(CAN_USE_CLNT_CREATE)
 	if (!(c = clnt_create("localhost", PMAPPROG, PMAPVERS, "tcp")))
-#else	/* !defined(CAN_USE_CLNT_CREATE) *//*
+#else	/* !defined(CAN_USE_CLNT_CREATE) */
 	if (!(c = clnttcp_create(&ia, PMAPPROG, PMAPVERS, &s, 0, 0)))
-#endif	/* defined(CAN_USE_CLNT_CREATE) *//*
+#endif	/* defined(CAN_USE_CLNT_CREATE) */
 
 	    return;
 	if (clnt_call(c, PMAPPROC_DUMP, XDR_VOID, NULL, XDR_PMAPLIST,
@@ -197,12 +199,12 @@ fill_portmap()
 /*
  * Loop through the port map dump, creating portmap table entries from TCP
  * and UDP members.
- *//*
+ */
 	for (; p; p = p->pml_next) {
 	
 	/*
 	 * Determine the port map entry's protocol; ignore all but TCP and UDP.
-	 *//*
+	 */
 	    if (p->pml_map.pm_prot == IPPROTO_TCP)
 		pr = 2;
 	    else if (p->pml_map.pm_prot == IPPROTO_UDP)
@@ -212,7 +214,7 @@ fill_portmap()
 	/*
 	 * See if there's already a portmap entry for this port.  If there is,
 	 * ignore this entry.
-	 *//*
+	 */
 	    h = HASHPORT((port = (int)p->pml_map.pm_port));
 	    for (pt = Pth[pr][h]; pt; pt = pt->next) {
 		if (pt->port == port)
@@ -222,7 +224,7 @@ fill_portmap()
 		continue;
 	/*
 	 * Save the registration name or number.
-	 *//*
+	 */
 	    cp = (char *)NULL;
 	    if ((r = (struct rpcent *)getrpcbynumber(p->pml_map.pm_prog))) {
 		if (r->r_name && strlen(r->r_name))
@@ -237,7 +239,7 @@ fill_portmap()
 		continue;
 	/*
 	 * Allocate space for the portmap name entry and copy it there.
-	 *//*
+	 */
 	    if (!(nm = mkstrcpy(cp, &nl))) {
 		(void) fprintf(stderr,
 		    "%s: can't allocate space for portmap entry: ", Pn);
@@ -251,7 +253,7 @@ fill_portmap()
 	/*
 	 * Allocate and fill a porttab struct entry for the portmap table.
 	 * Link it to the head of its hash bucket, and make it the new head.
-	 *//*
+	 */
 	    if (!(pt = (struct porttab *)malloc(sizeof(struct porttab)))) {
 		(void) fprintf(stderr,
 		    "%s: can't allocate porttab entry for portmap: ", Pn);
@@ -266,7 +268,9 @@ fill_portmap()
 	    Pth[pr][h] = pt;
 	}
 	clnt_destroy(c);
-}*/
+}
+
+# endif	/* !defined(__BIONIC__) */
 
 
 /*
@@ -487,10 +491,14 @@ lkup_port(p, pr, src)
  * If we're looking up program names for portmapped ports, make sure the
  * portmap table has been loaded.
  */
+
+# if	!defined(__BIONIC__) // bionic doesn't have RPC support
 	if (FportMap && !pm) {
-//	    (void) fill_portmap();
+	    (void) fill_portmap();
 	    pm++;
 	}
+# endif	/* !defined(__BIONIC__)
+
 /*
  * Hash the port and see if its name has been cached.  Look for a local
  * port first in the portmap, if portmap searching is enabled.
