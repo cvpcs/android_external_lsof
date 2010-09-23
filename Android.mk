@@ -1,6 +1,46 @@
 LOCAL_PATH := $(call my-dir)
 
 #########################################################################
+# Build liblsof (static library)
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := \
+        lib/ckkv.c \
+	lib/cvfs.c \
+	lib/dvch.c \
+	lib/fino.c \
+	lib/isfn.c \
+	lib/lkud.c \
+	lib/pdvn.c \
+	lib/prfp.c \
+        lib/ptti.c \
+	lib/rdev.c \
+	lib/regex.c \
+	lib/rmnt.c \
+	lib/rnam.c \
+	lib/rnch.c \
+	lib/rnmh.c \
+	lib/snpf.c
+
+LOCAL_MODULE := liblsof
+LOCAL_MODULE_TAGS:= eng
+
+LOCAL_C_INCLUDES := \
+	external/clearsilver/util/regex
+
+LOCAL_CFLAGS := -Os -g -W -Wall \
+        -DLINUXV=26032 \
+        -D__BIONIC__ \
+        -DHASIPv6 \
+        -D_FILE_OFFSET_BITS=32 \
+        -DHAS_STRFTIME \
+        -DLSOF_VSTR=\"2.6.32-androidlol\"
+
+LOCAL_PRELINK_MODULE := false
+
+include $(BUILD_STATIC_LIBRARY)
+
+#########################################################################
 # Build lsof (shared)
 include $(CLEAR_VARS)
 
@@ -63,5 +103,3 @@ LOCAL_STATIC_LIBRARIES := \
 LOCAL_FORCE_STATIC_EXECUTABLE := true
 
 include $(BUILD_EXECUTABLE)
-
-include $(call all-subdir-makefiles)
